@@ -765,7 +765,7 @@ static void apultra_optimize_forward(apultra_compressor *pCompressor, const unsi
 /**
  * Attempt to replace matches by literals when it makes the final bitstream smaller, and merge large matches
  *
- * @param pCompressor compression context
+ * @param pMatchfinder matchfinder context
  * @param pInWindow pointer to input data window (previously compressed bytes + bytes to compress)
  * @param pBestMatch optimal matches to evaluate and update
  * @param nStartOffset current offset in input window (typically the number of previously compressed bytes)
@@ -775,14 +775,13 @@ static void apultra_optimize_forward(apultra_compressor *pCompressor, const unsi
  *
  * @return non-zero if the number of tokens was reduced, 0 if it wasn't
  */
-static int apultra_reduce_commands(apultra_compressor *pCompressor, const unsigned char *pInWindow, apultra_final_match *pBestMatch, const int nStartOffset, const int nEndOffset, const int *nCurRepMatchOffset, const int nBlockFlags) {
+static int apultra_reduce_commands(apultra_matchfinder *pMatchfinder, const unsigned char *pInWindow, apultra_final_match *pBestMatch, const int nStartOffset, const int nEndOffset, const int *nCurRepMatchOffset, const int nBlockFlags) {
    int i;
    int nRepMatchOffset = *nCurRepMatchOffset;
    int nFollowsLiteral = 0;
    int nDidReduce = 0;
    int nLastMatchLen = 0;
-   const apultra_matchfinder matchfinder = pCompressor->matchfinder;
-   const unsigned char *match1 = matchfinder.match1 - nStartOffset;
+   const unsigned char *match1 = pMatchfinder->match1 - nStartOffset;
 
    for (i = nStartOffset + ((nBlockFlags & 1) ? 1 : 0); i < nEndOffset; ) {
       apultra_final_match *pMatch = pBestMatch + i;
@@ -1062,7 +1061,6 @@ static int apultra_write_block(
       const int nBlockFlags) {
    int i;
    int nRepMatchOffset = *nCurRepMatchOffset;
-   // const int nMaxOffset = pCompressor->matchfinder.max_offset;
    int nOutOffset = 0;
 
    if (nBlockFlags & 1) {
@@ -1421,7 +1419,7 @@ static void apultra_optimize_block(
    int nDidReduce;
    int nPasses = 0;
    do {
-      nDidReduce = apultra_reduce_commands(pCompressor, pInWindow, pCompressor->best_match - nPreviousBlockSize, nPreviousBlockSize, nEndOffset, nCurRepMatchOffset, nBlockFlags);
+      nDidReduce = apultra_reduce_commands(&pCompressor->matchfinder, pInWindow, pCompressor->best_match - nPreviousBlockSize, nPreviousBlockSize, nEndOffset, nCurRepMatchOffset, nBlockFlags);
       nPasses++;
    } while (nDidReduce && nPasses < 20);
 }
