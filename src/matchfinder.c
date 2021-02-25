@@ -446,6 +446,37 @@ void apultra_find_all_matches(apultra_matchfinder *pCompressor, const int nMatch
    }
 }
 
+
+
+/**
+ * Find all matches for one block of data
+ *
+ * @param pCompressor compression context
+ * @param pInWindow pointer to input data window (previously compressed bytes + bytes to compress)
+ * @param nPreviousBlockSize number of previously compressed bytes (or 0 for none)
+ * @param nInDataSize number of input bytes to compress
+ * @param nBlockFlags bit 0: 1 for first block, 0 otherwise; bit 1: 1 for last block, 0 otherwise
+ * @param nMatchesPerIndex
+ *
+ * @return size of compressed data in output buffer, or -1 if the data is uncompressible
+ */
+int apultra_find_all_block_matches(apultra_matchfinder *pMatchfinder,
+                                  const unsigned char *pInWindow,
+                                  const int nPreviousBlockSize,
+                                  const int nInDataSize,
+                                  const int nBlockFlags,
+                                  const int nMatchesPerIndex) {
+   if (apultra_build_suffix_array(pMatchfinder, pInWindow, nPreviousBlockSize + nInDataSize))
+      return -1;
+
+   if (nPreviousBlockSize) {
+      apultra_skip_matches(pMatchfinder, 0, nPreviousBlockSize);
+   }
+   apultra_find_all_matches(pMatchfinder, nMatchesPerIndex, nPreviousBlockSize, nPreviousBlockSize + nInDataSize, nBlockFlags);
+   return 0;
+}
+
+
 /**
  * Clean up matchfinder context and free up any associated resources
  *

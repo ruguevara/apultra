@@ -1537,25 +1537,21 @@ static int apultra_compressor_init(apultra_compressor *pCompressor, const int nB
  * @return size of compressed data in output buffer, or -1 if the data is uncompressible
  */
 static int apultra_compressor_shrink_block(apultra_compressor *pCompressor, const unsigned char *pInWindow, const int nPreviousBlockSize, const int nInDataSize, unsigned char *pOutData, const int nMaxOutDataSize, int *nCurBitsOffset, int *nCurBitShift, int *nCurFollowsLiteral, int *nCurRepMatchOffset, const int nBlockFlags) {
-   if (apultra_build_suffix_array(&pCompressor->matchfinder, pInWindow, nPreviousBlockSize + nInDataSize))
+   int fail = apultra_find_all_block_matches(&pCompressor->matchfinder, pInWindow, nPreviousBlockSize, nInDataSize, nBlockFlags, NMATCHES_PER_INDEX);
+
+   if (fail)
       return -1;
-   else {
-      if (nPreviousBlockSize) {
-         apultra_skip_matches(&pCompressor->matchfinder, 0, nPreviousBlockSize);
-      }
-      apultra_find_all_matches(&pCompressor->matchfinder, NMATCHES_PER_INDEX, nPreviousBlockSize, nPreviousBlockSize + nInDataSize, nBlockFlags);
 
-      apultra_optimize_block(pCompressor, pInWindow, nPreviousBlockSize, nInDataSize, nCurRepMatchOffset, nBlockFlags);
+   apultra_optimize_block(pCompressor, pInWindow, nPreviousBlockSize, nInDataSize, nCurRepMatchOffset, nBlockFlags);
 
-      return apultra_write_block(
-         &pCompressor->stats,
-         pCompressor->best_match - nPreviousBlockSize,
-         pInWindow,
-         nPreviousBlockSize,
-         pCompressor->matchfinder.max_offset,
-         nPreviousBlockSize + nInDataSize,
-         pOutData, nMaxOutDataSize, nCurBitsOffset, nCurBitShift, nCurFollowsLiteral, nCurRepMatchOffset, nBlockFlags);
-   }
+   return apultra_write_block(
+      &pCompressor->stats,
+      pCompressor->best_match - nPreviousBlockSize,
+      pInWindow,
+      nPreviousBlockSize,
+      pCompressor->matchfinder.max_offset,
+      nPreviousBlockSize + nInDataSize,
+      pOutData, nMaxOutDataSize, nCurBitsOffset, nCurBitShift, nCurFollowsLiteral, nCurRepMatchOffset, nBlockFlags);
 }
 
 /**
