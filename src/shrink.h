@@ -49,82 +49,82 @@ extern "C" {
 
 #define LEAVE_ALONE_MATCH_SIZE 120
 
-#define TOKEN_CODE_LARGE_MATCH   2 /* 10 */
-#define TOKEN_SIZE_LARGE_MATCH   2
+#define TOKEN_CODE_LARGE_MATCH 2 /* 10 */
+#define TOKEN_SIZE_LARGE_MATCH 2
 
-#define TOKEN_CODE_7BIT_MATCH    6 /* 110 */
-#define TOKEN_SIZE_7BIT_MATCH    3
+#define TOKEN_CODE_7BIT_MATCH 6 /* 110 */
+#define TOKEN_SIZE_7BIT_MATCH 3
 
-#define TOKEN_CODE_4BIT_MATCH    7 /* 111 */
-#define TOKEN_SIZE_4BIT_MATCH    3
+#define TOKEN_CODE_4BIT_MATCH 7 /* 111 */
+#define TOKEN_SIZE_4BIT_MATCH 3
 
 
 /** One finalized match */
 typedef struct _apultra_final_match {
-  int length;
-  int offset;
+    int length;
+    int offset;
 } apultra_final_match;
 
 /** Forward arrival slot */
 typedef struct {
-  int cost;
+    int cost;
 
-  unsigned int from_pos : 21;
-  int from_slot : 7;
-  unsigned int follows_literal : 1;
+    unsigned int from_pos : 21;
+    int from_slot : 7;
+    unsigned int follows_literal : 1;
 
-  unsigned int rep_offset : 21;
-  unsigned int short_offset : 4;
-  unsigned int rep_pos : 21;
-  unsigned int match_len : 11;
+    unsigned int rep_offset : 21;
+    unsigned int short_offset : 4;
+    unsigned int rep_pos : 21;
+    unsigned int match_len : 11;
 
-  int score;
+    int score;
 } apultra_arrival;
 
 /** Compression statistics */
 typedef struct _apultra_stats {
-  int num_literals;
-  int num_4bit_matches;
-  int num_7bit_matches;
-  int num_variable_matches;
-  int num_rep_matches;
-  int num_eod;
+    int num_literals;
+    int num_4bit_matches;
+    int num_7bit_matches;
+    int num_variable_matches;
+    int num_rep_matches;
+    int num_eod;
 
-  int safe_dist;
+    int safe_dist;
 
-  int min_offset;
-  int max_offset;
-  long long total_offsets;
+    int min_offset;
+    int max_offset;
+    long long total_offsets;
 
-  int min_match_len;
-  int max_match_len;
-  int total_match_lens;
+    int min_match_len;
+    int max_match_len;
+    int total_match_lens;
 
-  int min_rle1_len;
-  int max_rle1_len;
-  int total_rle1_lens;
+    int min_rle1_len;
+    int max_rle1_len;
+    int total_rle1_lens;
 
-  int min_rle2_len;
-  int max_rle2_len;
-  int total_rle2_lens;
+    int min_rle2_len;
+    int max_rle2_len;
+    int total_rle2_lens;
 
-  int commands_divisor;
-  int match_divisor;
-  int rle1_divisor;
-  int rle2_divisor;
+    int commands_divisor;
+    int match_divisor;
+    int rle1_divisor;
+    int rle2_divisor;
 } apultra_stats;
 
 /** Compression context */
 typedef struct _apultra_compressor {
-  apultra_matchfinder matchfinder;
-  apultra_final_match *best_match;
-  apultra_arrival *arrival;
-  int *first_offset_for_byte;
-  int *next_offset_for_pos;
-  int *offset_cache;
-  int flags;
-  int block_size;
-  int max_arrivals;
+    apultra_matchfinder matchfinder;
+    apultra_final_match *best_match;
+    apultra_arrival *arrival;
+    int *first_offset_for_byte;
+    int *next_offset_for_pos;
+    int *offset_cache;
+    int flags;
+    int block_size;
+    int max_arrivals;
 } apultra_compressor;
 
 /**
@@ -154,12 +154,14 @@ size_t apultra_get_max_compressed_size(size_t nInputSize);
  * @return actual compressed size, or -1 for error
  */
 size_t apultra_compress(const unsigned char *pInputData,
-                        unsigned char *pOutBuffer, size_t nInputSize,
-                        size_t nMaxOutBufferSize, const unsigned int nFlags,
-                        size_t nMaxWindowSize, size_t nDictionarySize,
-                        void (*progress)(long long nOriginalSize,
-                                         long long nCompressedSize),
-                        apultra_stats *pStats);
+    unsigned char *pOutBuffer,
+    size_t nInputSize,
+    size_t nMaxOutBufferSize,
+    const unsigned int nFlags,
+    size_t nMaxWindowSize,
+    size_t nDictionarySize,
+    void (*progress)(long long nOriginalSize, long long nCompressedSize),
+    apultra_stats *pStats);
 
 #ifdef __cplusplus
 }

@@ -53,23 +53,23 @@ extern "C" {
 
 /** One match option */
 typedef struct _apultra_match {
-  unsigned int length;
-  unsigned int offset;
-  // was
-  //   unsigned int length : 11;
-  //   unsigned int offset : 21;
+    unsigned int length;
+    unsigned int offset;
+    // was
+    //   unsigned int length : 11;
+    //   unsigned int offset : 21;
 } apultra_match;
 
 /** Matchfinder context */
 typedef struct _apultra_matchfinder {
-  divsufsort_ctx_t divsufsort_context;
-  unsigned long long *intervals;
-  unsigned long long *pos_data;
-  unsigned long long *open_intervals;
-  apultra_match *match;
-  unsigned short *match_depth;
-  unsigned char *match1;
-  int max_offset;
+    divsufsort_ctx_t divsufsort_context;
+    unsigned long long *intervals;
+    unsigned long long *pos_data;
+    unsigned long long *open_intervals;
+    apultra_match *match;
+    unsigned short *match_depth;
+    unsigned char *match1;
+    int max_offset;
 } apultra_matchfinder;
 
 // /**
@@ -131,12 +131,11 @@ typedef struct _apultra_matchfinder {
  * @return size of compressed data in output buffer, or -1 if the data is uncompressible
  */
 int apultra_find_all_block_matches(apultra_matchfinder *pMatchfinder,
-                                  const unsigned char *pInWindow,
-                                  const int nPreviousBlockSize,
-                                  const int nInDataSize,
-                                  const int nBlockFlags,
-                                  const int nMatchesPerIndex
-);
+    const unsigned char *pInWindow,
+    const int nPreviousBlockSize,
+    const int nInDataSize,
+    const int nBlockFlags,
+    const int nMatchesPerIndex);
 
 
 /**
@@ -152,9 +151,10 @@ int apultra_find_all_block_matches(apultra_matchfinder *pMatchfinder,
  * block, 0 otherwise
  */
 void apultra_find_all_matches(apultra_matchfinder *pCompressor,
-                              const int nMatchesPerOffset,
-                              const int nStartOffset, const int nEndOffset,
-                              const int nBlockFlags);
+    const int nMatchesPerOffset,
+    const int nStartOffset,
+    const int nEndOffset,
+    const int nBlockFlags);
 
 /**
  * Clean up matchfinder context and free up any associated resources
@@ -174,9 +174,9 @@ void apultra_matchfinder_destroy(apultra_matchfinder *pMatchfinder);
  * @return 0 for success, non-zero for failure
  */
 int apultra_matchfinder_init(apultra_matchfinder *pMatchfinder,
-                                    const int nBlockSize,
-                                    const int nMaxWindowSize,
-                                    const int nMatchedPerIndex);
+    const int nBlockSize,
+    const int nMaxWindowSize,
+    const int nMatchedPerIndex);
 
 #ifdef __cplusplus
 }
