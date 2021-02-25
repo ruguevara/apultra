@@ -23,34 +23,70 @@
 /*
  * Uses the libdivsufsort library Copyright (c) 2003-2008 Yuta Mori
  *
- * Inspired by cap by Sven-Åke Dahl. https://github.com/svendahl/cap
- * Also inspired by Charles Bloom's compression blog. http://cbloomrants.blogspot.com/
- * With ideas from LZ4 by Yann Collet. https://github.com/lz4/lz4
- * With help and support from spke <zxintrospec@gmail.com>
+ * Inspired by cap by Sven-ï¿½ke Dahl. https://github.com/svendahl/cap
+ * Also inspired by Charles Bloom's compression blog.
+ * http://cbloomrants.blogspot.com/ With ideas from LZ4 by Yann Collet.
+ * https://github.com/lz4/lz4 With help and support from spke
+ * <zxintrospec@gmail.com>
  *
  */
 
 #ifndef _MATCHFINDER_H
 #define _MATCHFINDER_H
 
+#include "divsufsort.h"
+#include "format.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/* Forward declarations */
-typedef struct _apultra_match apultra_match;
-typedef struct _apultra_compressor apultra_compressor;
+#define TAG_BITS 4
+#define LCP_BITS 15
+#define LCP_SHIFT (63 - LCP_BITS)
+#define POS_MASK ((1ULL << LCP_SHIFT) - 1)
+#define LCP_MASK (((1ULL << LCP_BITS) - 1) << LCP_SHIFT)
+#define LCP_MAX ((1U << (LCP_BITS - TAG_BITS)) - 1)
+#define VISITED_FLAG 0x8000000000000000ULL
+#define LCP_AND_TAG_MAX ((1U << LCP_BITS) - 1)
+#define EXCL_VISITED_MASK 0x7fffffffffffffffULL
+
+/** One match option */
+typedef struct _apultra_match {
+  unsigned int length;
+  unsigned int offset;
+  // was
+  //   unsigned int length : 11;
+  //   unsigned int offset : 21;
+} apultra_match;
+
+/** Matchfinder context */
+typedef struct _apultra_matchfinder {
+  divsufsort_ctx_t divsufsort_context;
+  unsigned long long *intervals;
+  unsigned long long *pos_data;
+  unsigned long long *open_intervals;
+  apultra_match *match;
+  unsigned short *match_depth;
+  unsigned char *match1;
+  int max_offset;
+} apultra_matchfinder;
 
 /**
- * Parse input data, build suffix array and overlaid data structures to speed up match finding
+ * Parse input data, build suffix array and overlaid data structures to speed up
+ * match finding
  *
  * @param pCompressor compression context
- * @param pInWindow pointer to input data window (previously compressed bytes + bytes to compress)
- * @param nInWindowSize total input size in bytes (previously compressed bytes + bytes to compress)
+ * @param pInWindow pointer to input data window (previously compressed bytes +
+ * bytes to compress)
+ * @param nInWindowSize total input size in bytes (previously compressed bytes +
+ * bytes to compress)
  *
  * @return 0 for success, non-zero for failure
  */
-int apultra_build_suffix_array(apultra_compressor *pCompressor, const unsigned char *pInWindow, const int nInWindowSize);
+int apultra_build_suffix_array(apultra_matchfinder *pCompressor,
+                               const unsigned char *pInWindow,
+                               const int nInWindowSize);
 
 /**
  * Find matches at the specified offset in the input window
@@ -61,31 +97,65 @@ int apultra_build_suffix_array(apultra_compressor *pCompressor, const unsigned c
  * @param pMatchDepth pointer to returned match depths
  * @param pMatch1 pointer to 1-byte length, 4 bit offset match
  * @param nMaxMatches maximum number of matches to return (0 for none)
- * @param nBlockFlags bit 0: 1 for first block, 0 otherwise; bit 1: 1 for last block, 0 otherwise
+ * @param nBlockFlags bit 0: 1 for first block, 0 otherwise; bit 1: 1 for last
+ * block, 0 otherwise
  *
  * @return number of matches
  */
-int apultra_find_matches_at(apultra_compressor *pCompressor, const int nOffset, apultra_match *pMatches, unsigned short *pMatchDepth, unsigned char *pMatch1, const int nMaxMatches, const int nBlockFlags);
+int apultra_find_matches_at(apultra_matchfinder *pCompressor, const int nOffset,
+                            apultra_match *pMatches,
+                            unsigned short *pMatchDepth, unsigned char *pMatch1,
+                            const int nMaxMatches, const int nBlockFlags);
 
 /**
  * Skip previously compressed bytes
  *
  * @param pCompressor compression context
  * @param nStartOffset current offset in input window (typically 0)
- * @param nEndOffset offset to skip to in input window (typically the number of previously compressed bytes)
+ * @param nEndOffset offset to skip to in input window (typically the number of
+ * previously compressed bytes)
  */
-void apultra_skip_matches(apultra_compressor *pCompressor, const int nStartOffset, const int nEndOffset);
+void apultra_skip_matches(apultra_matchfinder *pCompressor,
+                          const int nStartOffset, const int nEndOffset);
 
 /**
  * Find all matches for the data to be compressed
  *
  * @param pCompressor compression context
  * @param nMatchesPerOffset maximum number of matches to store for each offset
- * @param nStartOffset current offset in input window (typically the number of previously compressed bytes)
- * @param nEndOffset offset to end finding matches at (typically the size of the total input window in bytes
- * @param nBlockFlags bit 0: 1 for first block, 0 otherwise; bit 1: 1 for last block, 0 otherwise
+ * @param nStartOffset current offset in input window (typically the number of
+ * previously compressed bytes)
+ * @param nEndOffset offset to end finding matches at (typically the size of the
+ * total input window in bytes
+ * @param nBlockFlags bit 0: 1 for first block, 0 otherwise; bit 1: 1 for last
+ * block, 0 otherwise
  */
-void apultra_find_all_matches(apultra_compressor *pCompressor, const int nMatchesPerOffset, const int nStartOffset, const int nEndOffset, const int nBlockFlags);
+void apultra_find_all_matches(apultra_matchfinder *pCompressor,
+                              const int nMatchesPerOffset,
+                              const int nStartOffset, const int nEndOffset,
+                              const int nBlockFlags);
+
+/**
+ * Clean up matchfinder context and free up any associated resources
+ *
+ * @param pMatchfinder apultra_matchfinder context to clean up
+ */
+void apultra_matchfinder_destroy(apultra_matchfinder *pMatchfinder);
+
+/**
+ * Initialize matchfinder context
+ *
+ * @param pMatchfinder matchfinder context to initialize
+ * @param nBlockSize maximum size of input data (bytes to compress only)
+ * @param nMaxWindowSize maximum size of input data window (previously
+ * compressed bytes + bytes to compress)
+ *
+ * @return 0 for success, non-zero for failure
+ */
+int apultra_matchfinder_init(apultra_matchfinder *pMatchfinder,
+                                    const int nBlockSize,
+                                    const int nMaxWindowSize,
+                                    const int nMatchedPerIndex);
 
 #ifdef __cplusplus
 }

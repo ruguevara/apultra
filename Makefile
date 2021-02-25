@@ -20,9 +20,11 @@ OBJS += $(OBJDIR)/src/libdivsufsort/lib/trsort.o
 
 all: $(APP)
 
+src/apultra.c:	src/matchfinder.h src/format.h
+src/shrink.c:	src/shrink.h src/format.h src/matchfinder.h
+
 $(APP): $(OBJS)
 	$(CC) $^ $(LDFLAGS) -o $(APP)
 
 clean:
 	@rm -rf $(APP) $(OBJDIR)
-

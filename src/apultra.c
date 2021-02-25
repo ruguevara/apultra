@@ -23,7 +23,7 @@
 /*
  * Uses the libdivsufsort library Copyright (c) 2003-2008 Yuta Mori
  *
- * Inspired by cap by Sven-Åke Dahl. https://github.com/svendahl/cap
+ * Inspired by cap by Sven-ï¿½ke Dahl. https://github.com/svendahl/cap
  * Also inspired by Charles Bloom's compression blog. http://cbloomrants.blogspot.com/
  * With ideas from LZ4 by Yann Collet. https://github.com/lz4/lz4
  * With help and support from spke <zxintrospec@gmail.com>
@@ -199,7 +199,7 @@ static int do_compress(const char *pszInFilename, const char *pszOutFilename, co
    memset(pCompressedData, 0, nMaxCompressedSize);
 
    nCompressedSize = apultra_compress(pDecompressedData, pCompressedData, nDictionarySize + nOriginalSize, nMaxCompressedSize, nFlags, nMaxWindowSize, nDictionarySize, compression_progress, &stats);
-
+   
    if ((nOptions & OPT_VERBOSE)) {
       nEndTime = do_get_time();
    }
@@ -577,7 +577,7 @@ static void generate_compressible_data(unsigned char *pBuffer, size_t nBufferSiz
    int nMatchProbability = (int)(fMatchProbability * 1023.0f);
 
    srand(nSeed);
-   
+
    if (nIndex >= nBufferSize) return;
    pBuffer[nIndex++] = rand() % nNumLiteralValues;
 
