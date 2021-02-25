@@ -125,7 +125,6 @@ typedef struct _apultra_compressor {
   int flags;
   int block_size;
   int max_arrivals;
-  apultra_stats stats;
 } apultra_compressor;
 
 /**

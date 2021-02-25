@@ -447,7 +447,6 @@ void apultra_find_all_matches(apultra_matchfinder *pCompressor, const int nMatch
 }
 
 
-
 /**
  * Find all matches for one block of data
  *

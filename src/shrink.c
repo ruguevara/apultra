@@ -1463,6 +1463,7 @@ static void apultra_compressor_destroy(apultra_compressor *pCompressor) {
  * Initialize compression context
  *
  * @param pCompressor compression context to initialize
+ * @param pStats compression stats to initialize
  * @param nBlockSize maximum size of input data (bytes to compress only)
  * @param nMaxWindowSize maximum size of input data window (previously compressed bytes + bytes to compress)
  * @param nMaxArrivals maximum number of arrivals per position
@@ -1470,7 +1471,7 @@ static void apultra_compressor_destroy(apultra_compressor *pCompressor) {
  *
  * @return 0 for success, non-zero for failure
  */
-static int apultra_compressor_init(apultra_compressor *pCompressor, const int nBlockSize, const int nMaxWindowSize, const int nMaxArrivals, const int nFlags) {
+static int apultra_compressor_init(apultra_compressor *pCompressor, apultra_stats *pStats, const int nBlockSize, const int nMaxWindowSize, const int nMaxArrivals, const int nFlags) {
    int fail = apultra_matchfinder_init(&pCompressor->matchfinder, nBlockSize, nMaxWindowSize, NMATCHES_PER_INDEX);
 
    pCompressor->best_match = NULL;
@@ -1482,11 +1483,11 @@ static int apultra_compressor_init(apultra_compressor *pCompressor, const int nB
    pCompressor->block_size = nBlockSize;
    pCompressor->max_arrivals = nMaxArrivals;
 
-   memset(&pCompressor->stats, 0, sizeof(pCompressor->stats));
-   pCompressor->stats.min_match_len = -1;
-   pCompressor->stats.min_offset = -1;
-   pCompressor->stats.min_rle1_len = -1;
-   pCompressor->stats.min_rle2_len = -1;
+   memset(pStats, 0, sizeof(*pStats));
+   pStats->min_match_len = -1;
+   pStats->min_offset = -1;
+   pStats->min_rle1_len = -1;
+   pStats->min_rle2_len = -1;
 
    if (!fail) {
       pCompressor->arrival = (apultra_arrival *)malloc((nBlockSize + 1) * nMaxArrivals * sizeof(apultra_arrival));
@@ -1534,7 +1535,11 @@ static int apultra_compressor_init(apultra_compressor *pCompressor, const int nB
  *
  * @return size of compressed data in output buffer, or -1 if the data is uncompressible
  */
-static int apultra_compressor_shrink_block(apultra_compressor *pCompressor, const unsigned char *pInWindow, const int nPreviousBlockSize, const int nInDataSize, unsigned char *pOutData, const int nMaxOutDataSize, int *nCurBitsOffset, int *nCurBitShift, int *nCurFollowsLiteral, int *nCurRepMatchOffset, const int nBlockFlags) {
+static int apultra_compressor_shrink_block(
+   apultra_compressor *pCompressor,
+   apultra_stats *pStats,
+   const unsigned char *pInWindow, const int nPreviousBlockSize, const int nInDataSize, unsigned char *pOutData, const int nMaxOutDataSize, int *nCurBitsOffset, int *nCurBitShift, int *nCurFollowsLiteral, int *nCurRepMatchOffset, const int nBlockFlags
+) {
    int fail = apultra_find_all_block_matches(&pCompressor->matchfinder, pInWindow, nPreviousBlockSize, nInDataSize, nBlockFlags, NMATCHES_PER_INDEX);
 
    if (fail)
@@ -1543,7 +1548,7 @@ static int apultra_compressor_shrink_block(apultra_compressor *pCompressor, cons
    apultra_optimize_block(pCompressor, pInWindow, nPreviousBlockSize, nInDataSize, nCurRepMatchOffset, nBlockFlags);
 
    return apultra_write_block(
-      &pCompressor->stats,
+      pStats,
       pCompressor->best_match - nPreviousBlockSize,
       pInWindow,
       nPreviousBlockSize,
@@ -1602,7 +1607,7 @@ size_t apultra_compress(const unsigned char *pInputData, unsigned char *pOutBuff
       }
    }
 
-   nResult = apultra_compressor_init(&compressor, nBlockSize, nBlockSize * 2, nMaxArrivals, nFlags);
+   nResult = apultra_compressor_init(&compressor, pStats, nBlockSize, nBlockSize * 2, nMaxArrivals, nFlags);
    if (nResult != 0) {
       return -1;
    }
@@ -1635,7 +1640,7 @@ size_t apultra_compress(const unsigned char *pInputData, unsigned char *pOutBuff
 
          if ((nOriginalSize + nInDataSize) >= nInputSize)
             nBlockFlags |= 2;
-         nOutDataSize = apultra_compressor_shrink_block(&compressor, pInputData + nOriginalSize - nPreviousBlockSize, nPreviousBlockSize, nInDataSize, pOutBuffer + nCompressedSize, nOutDataEnd,
+         nOutDataSize = apultra_compressor_shrink_block(&compressor, pStats, pInputData + nOriginalSize - nPreviousBlockSize, nPreviousBlockSize, nInDataSize, pOutBuffer + nCompressedSize, nOutDataEnd,
             &nCurBitsOffset, &nCurBitShift, &nCurFollowsLiteral, &nCurRepMatchOffset, nBlockFlags);
          nBlockFlags &= (~1);
 
@@ -1665,8 +1670,6 @@ size_t apultra_compress(const unsigned char *pInputData, unsigned char *pOutBuff
 
    if (progress)
       progress(nOriginalSize, nCompressedSize);
-   if (pStats)
-      *pStats = compressor.stats;
 
    apultra_compressor_destroy(&compressor);
 
