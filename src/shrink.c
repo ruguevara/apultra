@@ -1537,10 +1537,8 @@ static int apultra_compressor_init(apultra_compressor *pCompressor, const int nB
  * @return size of compressed data in output buffer, or -1 if the data is uncompressible
  */
 static int apultra_compressor_shrink_block(apultra_compressor *pCompressor, const unsigned char *pInWindow, const int nPreviousBlockSize, const int nInDataSize, unsigned char *pOutData, const int nMaxOutDataSize, int *nCurBitsOffset, int *nCurBitShift, int *nCurFollowsLiteral, int *nCurRepMatchOffset, const int nBlockFlags) {
-   int nCompressedSize;
-
    if (apultra_build_suffix_array(&pCompressor->matchfinder, pInWindow, nPreviousBlockSize + nInDataSize))
-      nCompressedSize = -1;
+      return -1;
    else {
       if (nPreviousBlockSize) {
          apultra_skip_matches(&pCompressor->matchfinder, 0, nPreviousBlockSize);
@@ -1549,7 +1547,7 @@ static int apultra_compressor_shrink_block(apultra_compressor *pCompressor, cons
 
       apultra_optimize_block(pCompressor, pInWindow, nPreviousBlockSize, nInDataSize, nCurRepMatchOffset, nBlockFlags);
 
-      nCompressedSize = apultra_write_block(
+      return apultra_write_block(
          &pCompressor->stats,
          pCompressor->best_match - nPreviousBlockSize,
          pInWindow,
@@ -1558,8 +1556,6 @@ static int apultra_compressor_shrink_block(apultra_compressor *pCompressor, cons
          nPreviousBlockSize + nInDataSize,
          pOutData, nMaxOutDataSize, nCurBitsOffset, nCurBitShift, nCurFollowsLiteral, nCurRepMatchOffset, nBlockFlags);
    }
-
-   return nCompressedSize;
 }
 
 /**
